@@ -97,7 +97,12 @@ rules:
     status: exempt
     comment: |
       The fan entity uses the device name.
-  exception-translations: todo
+  exception-translations:
+    status: exempt
+    comment: |
+      This integration does not raise its own exceptions. Underlying
+      transmit errors already surface as translated ``HomeAssistantError``s
+      from the ``radio_frequency`` integration.
   icon-translations:
     status: exempt
     comment: |

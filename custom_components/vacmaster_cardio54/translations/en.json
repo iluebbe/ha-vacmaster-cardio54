@@ -2,9 +2,9 @@
   "config": {
     "abort": {
       "already_configured": "Device is already configured",
-      "no_compatible_transmitters": "No radio frequency transmitter supports 433.92 MHz OOK transmissions. Please add a compatible transmitter first.",
-      "no_transmitters": "No radio frequency transmitters are available. Please set up a transmitter first.",
-      "reconfigure_successful": "Re-configuration was successful"
+      "no_compatible_transmitters": "No radio frequency transmitter supports {frequency} {modulation} transmissions. Please add a compatible transmitter first.",
+      "no_transmitters": "No radio frequency transmitters are available. Please set up a device first.",
+      "reconfigure_successful": "Reconfiguration was successful"
     },
     "step": {
       "user": {
@@ -12,7 +12,7 @@
           "transmitter": "Radio frequency transmitter"
         },
         "data_description": {
-          "transmitter": "The radio frequency transmitter used to send commands to the Cardio54 fan."
+          "transmitter": "The radio frequency transmitter to use for sending commands."
         },
         "description": "Choose the radio frequency transmitter that will control the fan. Home Assistant assigns the fan a new RF identity that you will pair in the next step."
       },
@@ -40,7 +40,7 @@
           "transmitter": "Radio frequency transmitter"
         },
         "data_description": {
-          "transmitter": "The radio frequency transmitter used to send commands to the Cardio54 fan."
+          "transmitter": "The radio frequency transmitter to use for sending commands."
         },
         "description": "Choose the radio frequency transmitter for this fan. The fan keeps its existing RF identity, so no re-pairing is needed."
       }
