@@ -53,6 +53,83 @@ and HA's view of the state is a best guess restored across restarts via
 The Python dependency `rf_protocols` is pulled in transitively by
 `radio_frequency`; no extra requirements declared in `manifest.json`.
 
+## Wire up the ESP32 + CC1101 (reference build)
+
+Skip this section if you use a Broadlink or any other already-supported
+`radio_frequency` transmitter.
+
+The reference build is a generic **ESP32 DevKit** (`board: esp32dev` in
+ESPHome) plus a **CC1101 433 MHz module** with an SMA whip antenna.
+
+```
+                +----------------------+              +--------------------+
+                |     ESP32 DevKit     |              |   CC1101 module    |
+                |   (3V3 rail!)        |              |                    |
+                |                      |              |       ┌────┐       |
+                |        3V3   ────────┼──────────────┼──VCC  │    │       |
+                |        GND   ────────┼──────────────┼──GND  │ rf │       |
+                |    GPIO18 (SCK)──────┼──────────────┼──SCK  │ ic │  ◄── antenna
+                |    GPIO23 (MOSI)─────┼──────────────┼──MOSI │    │       |
+                |    GPIO19 (MISO)─────┼──────────────┼──MISO │    │       |
+                |    GPIO5  (CSN)──────┼──────────────┼──CSN  └────┘       |
+                |    GPIO22 ───────────┼──────────────┼──GDO0  (TX data)   |
+                |    GPIO21 ───────────┼──────────────┼──GDO2  (RX data)   |
+                +----------------------+              +--------------------+
+```
+
+### Pin mapping
+
+| ESP32 pin | CC1101 pin | Direction | Purpose |
+|---|---|---|---|
+| `3V3` | `VCC` | power | **3.3 V — do NOT connect to 5 V**, that fries the radio |
+| `GND` | `GND` | ground | common ground |
+| `GPIO18` | `SCK` | ESP → CC1101 | SPI clock |
+| `GPIO23` | `MOSI` (`SI`) | ESP → CC1101 | SPI data out (master → slave) |
+| `GPIO19` | `MISO` (`SO`) | ESP ← CC1101 | SPI data in  (slave → master) |
+| `GPIO5` | `CSN` (`CS`) | ESP → CC1101 | SPI chip-select. *Strapping pin — ESPHome warns at compile, harmless here.* |
+| `GPIO22` | `GDO0` | ESP → CC1101 | **Async-serial TX data input** — `remote_transmitter` writes pulses here |
+| `GPIO21` | `GDO2` | ESP ← CC1101 | **Async-serial RX data output** — `remote_receiver` reads demodulated pulses here |
+
+The "TX = GDO0 vs. RX = GDO2" split is the easy thing to get wrong. The
+CC1101 in async-serial mode treats **GDO0 as the data input that drives
+the modulator**, and **GDO2 as the data output from the demodulator**.
+Both wires are bidirectional from the ESP's perspective (the ESP drives
+GDO0 during a TX and reads GDO2 during an RX), and the
+`cc1101.begin_tx` / `cc1101.begin_rx` actions toggle the radio's state
+machine between the two.
+
+### Antenna
+
+A simple 17 cm straight wire works (quarter-wave at 433 MHz). The SMA
+modules with a screw-in helical antenna are fine too. Bad antenna =
+short range; mind the antenna match.
+
+### Power supply
+
+Powering the ESP32 dev board from a regular USB charger (or the
+ESPHome flasher cable) is enough. The CC1101 in TX mode at
+`output_power: 11` (≈ 9.9 dBm) draws about 30 mA — well within any
+3.3 V regulator on an ESP32 dev board.
+
+### Flash
+
+1. Install the ESPHome dashboard (≥ 2026.5 because that's where the
+   `radio_frequency` core component lives; while it's still beta you
+   either pin to `2026.5.0bN` or use the `:beta` Docker tag).
+2. Copy `esphome/esp32-dev-board.yaml` into your ESPHome config folder.
+3. Copy `esphome/secrets.yaml.example` to `secrets.yaml` next to it and
+   fill in your Wi-Fi credentials + a fresh `api_encryption_key` and
+   `ota_password` (the dashboard's "Generate encryption key" button does
+   both).
+4. **Install** the configuration onto the board (USB the first time,
+   wirelessly after that).
+5. Add the device in Home Assistant: Settings → Devices & Services →
+   Add Integration → ESPHome → host = the board's mDNS name or DHCP IP,
+   port 6053, paste the same `api_encryption_key`.
+6. A new entity `radio_frequency.<device>_rf` shows up under the
+   ESPHome device. The Cardio54 integration's config flow will pick it
+   up automatically.
+
 ## Install (custom component)
 
 1. Copy `custom_components/vacmaster_cardio54/` into your Home Assistant
