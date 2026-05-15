@@ -42,8 +42,13 @@ and HA's view of the state is a best guess restored across restarts via
 - A registered RF transmitter that supports **433.92 MHz OOK**, exposed via
   the `radio_frequency` platform. Tested transmitters:
   - ESPHome ≥ 2026.5 with the `radio_frequency` / `ir_rf_proxy` component
-    on top of `cc1101` + `remote_transmitter`
-  - Broadlink RM4 Pro (auto-registered by the Broadlink integration)
+    on top of `cc1101` + `remote_transmitter` — a ready-to-flash example
+    config lives at [`esphome/esp32-dev-board.yaml`](esphome/esp32-dev-board.yaml).
+    Copy `esphome/secrets.yaml.example` to `secrets.yaml` next to it and
+    fill in your own keys.
+  - Broadlink RM4 Pro (auto-registered by the Broadlink integration). Works
+    but the RF output is community-reported as weak; range may not reach
+    the fan reliably.
 
 The Python dependency `rf_protocols` is pulled in transitively by
 `radio_frequency`; no extra requirements declared in `manifest.json`.
@@ -67,6 +72,13 @@ Repeat for additional fans — each config entry is independent and gets
 its own auto-generated device ID, so multiple Cardio54s on the same
 transmitter do not cross-talk.
 
+## Remove
+
+Settings → Devices & Services → Vacmaster Cardio54 → ⋮ → **Delete**.
+The fan entity and config entry are unregistered immediately; no extra
+cleanup is required. The fan's pairing on the receiver side is not affected
+— it keeps the device ID until you re-pair it to a different transmitter.
+
 ## Reconfigure / Re-pair
 
 - **Switch transmitter** (e.g., move to a different RF gateway): the
@@ -75,6 +87,131 @@ transmitter do not cross-talk.
 - **Re-pair from scratch** (e.g., the receiver lost its slot): remove the
   config entry and add a fresh one — that generates a new ID and runs the
   pairing burst again.
+
+## Supported devices
+
+| Device | Model | Status |
+|---|---|---|
+| Vacmaster Cardio54 fitness fan | AM1202R | ✅ tested in production with 2× fans |
+
+Any other 3-speed fan that uses the same EV1527 remote (CMT2150L chip,
+24-bit OOK, 320/1000 µs symbols, 10 ms sync, MSB-first capture matching
+the data nibbles `1000 / 0100 / 0010 / 0001`) should work without changes
+— please open an issue with a sniffer capture if you have one.
+
+## Supported functions
+
+| Function | Service | RF action |
+|---|---|---|
+| Turn on at speed I | `fan.turn_on` (no percentage) | Send `DATA_SPEEDS[0]` (`1000`) |
+| Turn on at speed II / III | `fan.turn_on` with `percentage=50` / `100` | Send `DATA_SPEEDS[1]` / `[2]` |
+| Set speed | `fan.set_percentage` | Send the matching speed nibble |
+| Turn off | `fan.turn_off` or `set_percentage 0` | Send `DATA_POWER` (toggle) **only if the entity believes the fan is on** |
+| State restore | implicit on HA restart | `RestoreEntity` reloads the last known percentage; no RF sent |
+
+The fan entity exposes `assumed_state = True`. HA's notion of on/off and
+speed is a best guess derived from the last command we sent.
+
+## Known limitations
+
+- **One-way protocol.** There is no acknowledgement and no telemetry. If
+  someone presses a button on the OEM remote, HA does not see it — the
+  state drifts until the next service call writes it.
+- **Power is a toggle.** A "turn off" command physically toggles the
+  receiver. The integration only emits it when HA thinks the fan is on; if
+  the state has drifted (e.g., the fan was turned on by the OEM remote
+  while HA showed "off") the toggle will appear to switch the fan on
+  instead. Send a speed command — speeds switch the fan on
+  deterministically — to re-sync.
+- **One pairing slot per fan.** The Cardio54 receiver only stores one
+  transmitter ID. Re-pairing to a new ID overwrites the previous one.
+  Keep the OEM remote out of pairing range during the burst, otherwise
+  it may re-claim the slot.
+- **RF range depends on the transmitter.** With an ESPHome/CC1101 setup
+  on a regular antenna we have reliable line-of-sight at typical room
+  distance. The Broadlink RM4 Pro's RF stage is community-reported as
+  weak and may not reach the fan even from a few metres.
+- **Frequency is hard-coded to 433.92 MHz.** The integration filters
+  available transmitters by exact OOK + 433.92 MHz support, which is what
+  EV1527 needs. Multi-band RF gateways must expose 433.92 MHz in their
+  `supported_frequency_ranges` to be selectable.
+
+## Troubleshooting
+
+**Config flow aborts with "No radio frequency transmitter supports
+433.92 MHz OOK".**
+The selected transmitter is registered but does not advertise 433.92 MHz
+OOK in its capabilities. For ESPHome/CC1101 setups make sure the
+`radio_frequency:` block carries `frequency: 433.92MHz` — without it the
+device reports `frequency_min = frequency_max = 0` and HA filters it out.
+
+**Fan does not react to commands but the RF burst goes out cleanly.**
+Pairing is per-receiver-slot. Either the receiver has not learned this
+HA's auto-generated device ID (re-run the pair step) or another
+transmitter (OEM remote, second HA, leftover Broadlink test) recently
+re-claimed the slot.
+
+**ESPHome dev board hangs and goes offline after the first transmission.**
+On ESPHome ≥ 2026.5 the `remote_transmitter:` defaults to
+`non_blocking: true`. The `on_complete` callback then fires before the
+CC1101 has finished transmitting, the chip is yanked back into RX mid-burst
+and the whole module locks up until a power-cycle. Set
+`non_blocking: false` on the transmitter (the example YAML in this repo
+already does).
+
+**Setup-flow aborts on a fresh HA install with "No radio frequency
+transmitters are available".**
+You need to add a radio-frequency-capable integration first (ESPHome with
+the example dev-board YAML, or Broadlink). The Cardio54 integration only
+sees transmitters that the `radio_frequency` core component already knows
+about.
+
+## Example automations
+
+Off at bedtime:
+
+```yaml
+- alias: Bedroom fan off at midnight
+  trigger:
+    - platform: time
+      at: "00:00:00"
+  action:
+    - service: fan.turn_off
+      target:
+        entity_id: fan.cardio54_bedroom
+```
+
+Boost when the temperature in the room goes above 25 °C:
+
+```yaml
+- alias: Cardio fan boost when warm
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bedroom_temperature
+      above: 25
+  action:
+    - service: fan.set_percentage
+      target:
+        entity_id: fan.cardio54_bedroom
+      data:
+        percentage: 100
+```
+
+Re-sync after manually pressing the OEM remote (the integration cannot
+detect that, so a manual button helper is the simplest workaround):
+
+```yaml
+- alias: Re-sync Cardio fan state
+  trigger:
+    - platform: state
+      entity_id: input_button.cardio_resync
+  action:
+    - service: fan.set_percentage
+      target:
+        entity_id: fan.cardio54_bedroom
+      data:
+        percentage: 33   # Speed I — switches the fan on deterministically
+```
 
 ## Hardware reference
 

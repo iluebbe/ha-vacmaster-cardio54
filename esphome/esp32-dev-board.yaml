@@ -1,0 +1,143 @@
+substitutions:
+  name: esp32-dev-board
+  friendly_name: ESP32-Dev-Board
+
+# =============================================================================
+# CC1101 radio_frequency gateway — HA-discoverable RF transmitter
+# =============================================================================
+# Exposes a CC1101 module as a ``radio_frequency`` transmitter entity to
+# Home Assistant. The vacmaster_cardio54 integration picks this transmitter
+# up via ``async_get_transmitters(hass, 433_920_000, ModulationType.OOK)``
+# and pushes raw EV1527 timings through it to control the fans.
+#
+# Architecture (ESPHome >= 2026.5.0b1, pattern from PR #16368):
+#
+#   radio_frequency: ir_rf_proxy   ──>   remote_transmitter (rf_tx, GDO0)
+#                                                                ▲
+#                            on_transmit / on_complete callbacks ──> cc1101
+#                                                       begin_tx / begin_rx
+#
+# A remote_receiver on GDO2 (rf_rx) stays in place so we can sniff our own
+# transmissions for verification — handy during development.
+#
+# Tested on a generic ESP32-DevKit board (esp32dev) with a CC1101 module
+# wired to:
+#   SCK  = GPIO18
+#   MOSI = GPIO23
+#   MISO = GPIO19
+#   CSN  = GPIO5
+#   GDO0 = GPIO22   (TX data input  -> remote_transmitter)
+#   GDO2 = GPIO21   (RX data output -> remote_receiver / self-sniff)
+# =============================================================================
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100
+    then:
+      # Start in RX mode. The remote_transmitter's on_transmit callback flips
+      # the CC1101 into TX for the duration of a send and on_complete switches
+      # it back to RX so the self-sniffer can keep listening.
+      - cc1101.begin_rx: cc1101_radio
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: DEBUG
+  baud_rate: 115200
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+cc1101:
+  id: cc1101_radio
+  cs_pin: GPIO5
+  frequency: 433.92MHz
+  modulation_type: ASK/OOK
+  filter_bandwidth: 203kHz
+  output_power: 11
+  symbol_rate: 25000
+  manchester: false
+  dc_blocking_filter: false
+
+# TX path: ESPHome remote_transmitter on GDO0 = GPIO22.
+# Callbacks flip the CC1101 into TX for the transmission and back to RX
+# afterwards so the self-sniff receiver keeps running.
+remote_transmitter:
+  id: rf_tx
+  pin: GPIO22
+  carrier_duty_percent: 100%
+  # Send synchronously: on_complete only fires once the hardware has actually
+  # finished. With the ESPHome 2026.5 default ``non_blocking: true`` the
+  # on_complete callback can fire while the CC1101 is still mid-burst, the
+  # subsequent begin_rx then tears the radio down during transmit, the chip
+  # hangs and the whole ESP module locks up until a power-cycle.
+  non_blocking: false
+  on_transmit:
+    then:
+      - cc1101.begin_tx: cc1101_radio
+  on_complete:
+    then:
+      - cc1101.begin_rx: cc1101_radio
+
+# RX path (self-sniffer): GDO2 = GPIO21. Tuning:
+#  - idle 15ms (> the 10ms inter-frame sync gap): the whole burst is captured
+#    as a single raw dump instead of being fragmented.
+#  - filter 200us: drops 50-150us blips from ambient 433 MHz traffic
+#    (weather stations, garage openers, switching PSUs). Cardio54 short
+#    pulses (~320us) sit safely above the threshold.
+#  - tolerance 50%: lets rc_switch decode slightly out-of-spec frames so we
+#    can see what the chip is actually transmitting.
+remote_receiver:
+  id: rf_rx
+  pin: GPIO21
+  dump:
+    - raw
+    - rc_switch
+  filter: 200us
+  idle: 15ms
+  tolerance: 50%
+  buffer_size: 4kb
+
+# HA-discoverable radio_frequency transmitter entity. Once this device
+# reconnects after a flash, HA's esphome integration registers it as
+# ``radio_frequency.<device>_rf`` (see
+# homeassistant/components/esphome/radio_frequency.py) and the
+# ``vacmaster_cardio54`` integration finds it via async_get_transmitters.
+radio_frequency:
+  - platform: ir_rf_proxy
+    name: "RF"
+    remote_transmitter_id: rf_tx
+    # ir_rf_proxy / radio_frequency.py: ``set_fixed_frequency_hz()``. Without
+    # this key the device reports frequency_min = frequency_max = 0, and
+    # async_get_transmitters(hass, 433_920_000, OOK) filters it out.
+    frequency: 433.92MHz
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # DHCP rather than a fixed IP: a static IP collides as soon as the router
+  # restarts or another device claims it. The ESPHome dashboard finds the
+  # board over mDNS at ``${name}.local`` and the current DHCP lease shows up
+  # in the boot log.
+  ap:
+    ssid: "Esp32-Dev-Board Fallback Hotspot"
+    password: !secret ap_fallback_password
+
+captive_portal:
+
+web_server:
