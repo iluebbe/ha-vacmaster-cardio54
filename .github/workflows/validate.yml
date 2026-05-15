@@ -5,14 +5,13 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    - cron: "0 4 * * 1"   # weekly, Monday 04:00 UTC — catches HACS/hassfest drift
+    - cron: "0 4 * * 1" # weekly, Monday 04:00 UTC — catches HACS/hassfest drift
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-
   json:
     name: JSON / translations
     runs-on: ubuntu-latest

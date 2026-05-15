@@ -36,3 +36,11 @@ known-first-party = ["custom_components.vacmaster_cardio54"]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.codespell]
+# Same allow-list HA core uses -- ``hass`` is the fixture name everywhere
+# in our test suite, codespell otherwise flags it as a misspelling of
+# ``hash``. ``ba`` shows up inside hex strings in the snapshot file.
+ignore-words-list = "hass,homeassistant,ba"
+skip = "*.ambr,*.lock,**/.git/**"
+

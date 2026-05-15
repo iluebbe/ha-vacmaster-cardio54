@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   syntax-check:
     name: Python syntax
     runs-on: ubuntu-latest
@@ -35,6 +34,62 @@ jobs:
         run: ruff check custom_components/ tests/
       - name: ruff format --check
         run: ruff format --check custom_components/ tests/
+
+  mypy:
+    name: mypy --strict
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install --no-cache-dir -r requirements_test.txt mypy
+      - name: Run mypy
+        run: |
+          mypy --strict --ignore-missing-imports --no-implicit-reexport \
+            custom_components/vacmaster_cardio54
+
+  codespell:
+    name: codespell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install codespell
+        run: pip install --quiet codespell
+      - name: Run codespell
+        run: codespell --toml=pyproject.toml custom_components/ tests/ esphome/ README.md
+
+  prettier:
+    name: Prettier (json + yaml + md)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run prettier --check
+        run: npx --yes prettier@3.3 --check "**/*.{json,md,yaml,yml}" --ignore-path .gitignore
+
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install yamllint
+        run: pip install --quiet yamllint
+      - name: Run yamllint
+        run: |
+          yamllint -d "{rules: {line-length: disable, document-start: disable, truthy: disable}}" \
+            .github/ esphome/esp32-dev-board.yaml custom_components/vacmaster_cardio54/quality_scale.yaml
 
   pytest:
     name: pytest (HA via pytest-homeassistant-custom-component)

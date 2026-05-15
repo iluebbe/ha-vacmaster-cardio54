@@ -29,7 +29,11 @@ _DEFAULT_REPEATS = 4
 _DEFAULT_TIMEBASE_US = 275
 
 
-class EV1527Command(RadioFrequencyCommand):
+class EV1527Command(RadioFrequencyCommand):  # type: ignore[misc]
+    # Subclassing a class mypy sees as ``Any`` (rf_protocols does not ship
+    # type stubs / a ``py.typed`` marker). Drops out automatically once the
+    # vendored file is replaced by ``rf_protocols.commands.ev1527`` post-
+    # upstream-release.
     """Encode an EV1527-compatible RF command.
 
     Data layout:

@@ -6,7 +6,7 @@ as a `fan` entity with three speed levels and a power toggle.
 
 This is a custom component intended for [HACS](https://hacs.xyz/) /
 manual installation while it's iterated locally. The end goal is upstreaming
-to Home Assistant core at Silver Quality Scale.
+to Home Assistant core at Gold Quality Scale.
 
 ## How it works
 
@@ -92,16 +92,16 @@ ESPHome) plus a **CC1101 433 MHz module** with an SMA whip antenna.
 
 ### Pin mapping
 
-| ESP32 pin | CC1101 pin | Direction | Purpose |
-|---|---|---|---|
-| `3V3` | `VCC` | power | **3.3 V — do NOT connect to 5 V**, that fries the radio |
-| `GND` | `GND` | ground | common ground |
-| `GPIO18` | `SCK` | ESP → CC1101 | SPI clock |
-| `GPIO23` | `MOSI` (`SI`) | ESP → CC1101 | SPI data out (master → slave) |
-| `GPIO19` | `MISO` (`SO`) | ESP ← CC1101 | SPI data in  (slave → master) |
-| `GPIO5` | `CSN` (`CS`) | ESP → CC1101 | SPI chip-select. *Strapping pin — ESPHome warns at compile, harmless here.* |
-| `GPIO22` | `GDO0` | ESP → CC1101 | **Async-serial TX data input** — `remote_transmitter` writes pulses here |
-| `GPIO21` | `GDO2` | ESP ← CC1101 | **Async-serial RX data output** — `remote_receiver` reads demodulated pulses here |
+| ESP32 pin | CC1101 pin    | Direction    | Purpose                                                                           |
+| --------- | ------------- | ------------ | --------------------------------------------------------------------------------- |
+| `3V3`     | `VCC`         | power        | **3.3 V — do NOT connect to 5 V**, that fries the radio                           |
+| `GND`     | `GND`         | ground       | common ground                                                                     |
+| `GPIO18`  | `SCK`         | ESP → CC1101 | SPI clock                                                                         |
+| `GPIO23`  | `MOSI` (`SI`) | ESP → CC1101 | SPI data out (master → slave)                                                     |
+| `GPIO19`  | `MISO` (`SO`) | ESP ← CC1101 | SPI data in (slave → master)                                                      |
+| `GPIO5`   | `CSN` (`CS`)  | ESP → CC1101 | SPI chip-select. _Strapping pin — ESPHome warns at compile, harmless here._       |
+| `GPIO22`  | `GDO0`        | ESP → CC1101 | **Async-serial TX data input** — `remote_transmitter` writes pulses here          |
+| `GPIO21`  | `GDO2`        | ESP ← CC1101 | **Async-serial RX data output** — `remote_receiver` reads demodulated pulses here |
 
 The "TX = GDO0 vs. RX = GDO2" split is the easy thing to get wrong. The
 CC1101 in async-serial mode treats **GDO0 as the data input that drives
@@ -180,8 +180,8 @@ cleanup is required. The fan's pairing on the receiver side is not affected
 
 ## Supported devices
 
-| Device | Model | Status |
-|---|---|---|
+| Device                         | Model   | Status                               |
+| ------------------------------ | ------- | ------------------------------------ |
 | Vacmaster Cardio54 fitness fan | AM1202R | ✅ tested in production with 2× fans |
 
 Any other 3-speed fan that uses the same EV1527 remote (CMT2150L chip,
@@ -191,13 +191,13 @@ the data nibbles `1000 / 0100 / 0010 / 0001`) should work without changes
 
 ## Supported functions
 
-| Function | Service | RF action |
-|---|---|---|
-| Turn on at speed I | `fan.turn_on` (no percentage) | Send `DATA_SPEEDS[0]` (`1000`) |
-| Turn on at speed II / III | `fan.turn_on` with `percentage=50` / `100` | Send `DATA_SPEEDS[1]` / `[2]` |
-| Set speed | `fan.set_percentage` | Send the matching speed nibble |
-| Turn off | `fan.turn_off` or `set_percentage 0` | Send `DATA_POWER` (toggle) **only if the entity believes the fan is on** |
-| State restore | implicit on HA restart | `RestoreEntity` reloads the last known percentage; no RF sent |
+| Function                  | Service                                    | RF action                                                                |
+| ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------ |
+| Turn on at speed I        | `fan.turn_on` (no percentage)              | Send `DATA_SPEEDS[0]` (`1000`)                                           |
+| Turn on at speed II / III | `fan.turn_on` with `percentage=50` / `100` | Send `DATA_SPEEDS[1]` / `[2]`                                            |
+| Set speed                 | `fan.set_percentage`                       | Send the matching speed nibble                                           |
+| Turn off                  | `fan.turn_off` or `set_percentage 0`       | Send `DATA_POWER` (toggle) **only if the entity believes the fan is on** |
+| State restore             | implicit on HA restart                     | `RestoreEntity` reloads the last known percentage; no RF sent            |
 
 The fan entity exposes `assumed_state = True`. HA's notion of on/off and
 speed is a best guess derived from the last command we sent.
@@ -300,20 +300,20 @@ detect that, so a manual button helper is the simplest workaround):
       target:
         entity_id: fan.cardio54_bedroom
       data:
-        percentage: 33   # Speed I — switches the fan on deterministically
+        percentage: 33 # Speed I — switches the fan on deterministically
 ```
 
 ## Hardware reference
 
-| Detail | Value |
-|---|---|
-| Frequency | 433.92 MHz |
-| Modulation | OOK (ASK) |
-| Protocol | EV1527, 24 bits (20-bit ID + 4-bit data) |
-| Symbol timebase | ~320 µs (short pulse), ~1000 µs (long pulse) |
-| Sync | short mark + ~10 ms space |
-| Data nibbles | `1000` = speed I, `0100` = II, `0010` = III, `0001` = power toggle |
-| Receiver slots | 1 (re-pairing overwrites the existing ID) |
+| Detail          | Value                                                              |
+| --------------- | ------------------------------------------------------------------ |
+| Frequency       | 433.92 MHz                                                         |
+| Modulation      | OOK (ASK)                                                          |
+| Protocol        | EV1527, 24 bits (20-bit ID + 4-bit data)                           |
+| Symbol timebase | ~320 µs (short pulse), ~1000 µs (long pulse)                       |
+| Sync            | short mark + ~10 ms space                                          |
+| Data nibbles    | `1000` = speed I, `0100` = II, `0010` = III, `0001` = power toggle |
+| Receiver slots  | 1 (re-pairing overwrites the existing ID)                          |
 
 Power is a **toggle**, so the integration only emits it when it believes
 the fan is currently on. Speed commands switch the fan on deterministically
@@ -321,11 +321,13 @@ and are safe to fire in any state.
 
 ## Quality scale
 
-Targets **Silver** per the
+Targets **Gold** per the
 [HA Quality Scale rules](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/).
-See `custom_components/vacmaster_cardio54/quality_scale.yaml` for the rule
-status. Gold-tier items (`diagnostics`, `devices`, `reconfiguration-flow`)
-are already in place.
+Every Bronze, Silver and Gold rule is either `done` or `exempt` (see
+`custom_components/vacmaster_cardio54/quality_scale.yaml`). The only
+outstanding item is the Platinum-tier `strict-typing` opt-in, which
+becomes meaningful only inside the HA core repo's `.strict-typing`
+registry — the codebase already passes `mypy --strict` in CI.
 
 ## Tests
 
