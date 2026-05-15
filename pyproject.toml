@@ -1,7 +1,7 @@
 [tool.ruff]
 # Match the HA core style so porting the integration upstream needs no
 # additional re-formatting work.
-target-version = "py313"
+target-version = "py314"
 line-length = 88
 
 [tool.ruff.lint]
