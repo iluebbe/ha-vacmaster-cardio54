@@ -45,3 +45,8 @@ home-assistant_v2.db*
 .HA_VERSION
 deps/
 tts/
+
+# Source artwork for the brands PR — fetched from a third party (seeklogo),
+# not our own work. The generated, MIT-licensable PNGs live in
+# brand_assets/ and are checked in.
+.brand-source.png
