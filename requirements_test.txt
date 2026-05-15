@@ -1,14 +1,14 @@
 # Test dependencies for the vacmaster_cardio54 integration.
 #
-# pytest-homeassistant-custom-component pulls in the matching HA test
-# infrastructure (hass fixture, MockConfigEntry, enable_custom_integrations,
-# syrupy snapshot helper) for the HA version we target. Pin to a version
-# that matches HA 2026.5.x.
-pytest-homeassistant-custom-component>=0.13.300
+# pytest-homeassistant-custom-component versions track HA's per-release
+# pins; ``radio_frequency`` is only in HA >= 2026.5.0. 0.13.327 is the
+# first phacc release that pulls in a HA wheel containing it, 0.13.330
+# pins HA 2026.5.1 (currently latest).
+pytest-homeassistant-custom-component>=0.13.327
 pytest-asyncio>=0.24
 syrupy>=4.7
-# HA core does NOT pip-install per-integration requirements transitively, so
-# rf-protocols (declared in radio_frequency's manifest.json) is missing in
-# a plain pytest-homeassistant-custom-component environment. Install it
-# explicitly here.
+# HA core does NOT pip-install per-integration manifest requirements
+# transitively, so rf-protocols (declared in radio_frequency's manifest)
+# is missing from a plain pytest-homeassistant-custom-component
+# environment. Install it explicitly here.
 rf-protocols>=3.0.0

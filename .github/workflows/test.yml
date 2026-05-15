@@ -46,8 +46,13 @@ jobs:
           python-version: "3.13"
       - name: Install test dependencies
         run: |
-          pip install --quiet --upgrade pip
-          pip install --quiet -r requirements_test.txt
+          pip install --upgrade pip
+          # --no-cache-dir guards against stale wheels from the runner image
+          # picking up an older pytest-homeassistant-custom-component that
+          # pins a pre-2026.5 Home Assistant without radio_frequency.
+          pip install --no-cache-dir -r requirements_test.txt
+          echo "=== resolved versions ==="
+          pip show pytest-homeassistant-custom-component homeassistant rf-protocols | grep -E '^(Name|Version):'
       - name: Run pytest with coverage
         run: |
           PYTHONPATH=. python -m pytest tests/ \
