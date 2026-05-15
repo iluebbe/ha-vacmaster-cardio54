@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — must never land in a public repo
+secrets.yaml
+secrets.local.yaml
+*.key
+*.pem
+.env
+.env.*
+
+# Home Assistant runtime state (in case anyone tests against a real instance
+# from this checkout — only the integration source belongs in the repo,
+# never the user's HA config or DB)
+.storage/
+home-assistant.log*
+home-assistant_v2.db*
+.HA_VERSION
+deps/
+tts/

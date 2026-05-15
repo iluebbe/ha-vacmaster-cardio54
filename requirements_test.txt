@@ -1,0 +1,9 @@
+# Test dependencies for the vacmaster_cardio54 integration.
+#
+# pytest-homeassistant-custom-component pulls in the matching HA test
+# infrastructure (hass fixture, MockConfigEntry, enable_custom_integrations,
+# syrupy snapshot helper) for the HA version we target. Pin to a version
+# that matches HA 2026.5.x.
+pytest-homeassistant-custom-component>=0.13.300
+pytest-asyncio>=0.24
+syrupy>=4.7

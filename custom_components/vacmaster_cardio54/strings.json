@@ -1,0 +1,49 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "no_compatible_transmitters": "No radio frequency transmitter supports 433.92 MHz OOK transmissions. Please add a compatible transmitter first.",
+      "no_transmitters": "No radio frequency transmitters are available. Please set up a transmitter first.",
+      "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "transmitter": "Radio frequency transmitter"
+        },
+        "data_description": {
+          "transmitter": "The radio frequency transmitter used to send commands to the Cardio54 fan."
+        },
+        "description": "Choose the radio frequency transmitter that will control the fan. Home Assistant assigns the fan a new RF identity that you will pair in the next step."
+      },
+      "pair": {
+        "title": "Pair the fan",
+        "description": "Put the fan into pairing mode now:\n\n1. Set the fan's power switch to **0** (off).\n2. Turn the speed dial to the **remote-control symbol**.\n3. Set the power switch to **I** — a 5-second pairing window starts.\n4. **Immediately** press Submit. Home Assistant sends a pairing burst for a few seconds; the fan's LED should blink red while it learns the code."
+      },
+      "pair_failed": {
+        "title": "Pairing command failed",
+        "description": "Home Assistant could not send the pairing burst. Check that the radio frequency transmitter is online, then press Retry.",
+        "menu_options": {
+          "retry": "Retry"
+        }
+      },
+      "test": {
+        "title": "Confirm the fan responds",
+        "description": "Home Assistant sent a speed command. Did the fan start spinning? Press Finish to save, or Retry to pair again.",
+        "menu_options": {
+          "finish": "Finish",
+          "retry": "Retry"
+        }
+      },
+      "reconfigure": {
+        "data": {
+          "transmitter": "[%key:component::vacmaster_cardio54::config::step::user::data::transmitter%]"
+        },
+        "data_description": {
+          "transmitter": "[%key:component::vacmaster_cardio54::config::step::user::data_description::transmitter%]"
+        },
+        "description": "Choose the radio frequency transmitter for this fan. The fan keeps its existing RF identity, so no re-pairing is needed."
+      }
+    }
+  }
+}
