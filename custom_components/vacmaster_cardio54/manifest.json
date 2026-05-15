@@ -4,9 +4,10 @@
   "codeowners": ["@iluebbe"],
   "config_flow": true,
   "dependencies": ["radio_frequency"],
-  "documentation": "https://www.home-assistant.io/integrations/vacmaster_cardio54",
+  "documentation": "https://github.com/iluebbe/ha-vacmaster-cardio54",
   "integration_type": "device",
   "iot_class": "assumed_state",
+  "issue_tracker": "https://github.com/iluebbe/ha-vacmaster-cardio54/issues",
   "quality_scale": "silver",
   "requirements": [],
   "version": "0.1.0"

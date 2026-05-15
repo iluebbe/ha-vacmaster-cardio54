@@ -233,9 +233,7 @@ async def test_unavailable_when_transmitter_goes_offline(
     init_integration: MockConfigEntry,
 ) -> None:
     """The fan flips to unavailable when its transmitter does, and back."""
-    transmitter_entity_id = next(
-        e.entity_id for e in mock_rf_entity.platform.entities.values()
-    )
+    transmitter_entity_id = mock_rf_entity.entity_id
     # Mark the transmitter unavailable.
     hass.states.async_set(transmitter_entity_id, STATE_UNAVAILABLE)
     await hass.async_block_till_done()

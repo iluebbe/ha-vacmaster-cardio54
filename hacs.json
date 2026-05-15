@@ -2,6 +2,5 @@
   "name": "Vacmaster Cardio54",
   "render_readme": true,
   "homeassistant": "2026.5.0",
-  "iot_class": "assumed_state",
   "country": "DE"
 }

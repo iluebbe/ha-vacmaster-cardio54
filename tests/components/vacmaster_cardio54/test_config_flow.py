@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 from homeassistant.components.radio_frequency import DATA_COMPONENT
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
@@ -29,12 +28,7 @@ def _transmitter_registry_id(
     hass: HomeAssistant, mock_rf_entity: MockRadioFrequencyEntity
 ) -> str:
     """Return the entity-registry ID (NOT entity_id) of the mock transmitter."""
-    registry = er.async_get(hass)
-    entity_id = registry.async_get_entity_id(
-        "radio_frequency", "test", mock_rf_entity.unique_id
-    )
-    assert entity_id is not None
-    entry = registry.async_get(entity_id)
+    entry = er.async_get(hass).async_get(mock_rf_entity.entity_id)
     assert entry is not None
     return entry.id
 
@@ -43,12 +37,7 @@ def _transmitter_entity_id(
     hass: HomeAssistant, mock_rf_entity: MockRadioFrequencyEntity
 ) -> str:
     """Return the entity_id (e.g. radio_frequency.test_rf_transmitter)."""
-    registry = er.async_get(hass)
-    entity_id = registry.async_get_entity_id(
-        "radio_frequency", "test", mock_rf_entity.unique_id
-    )
-    assert entity_id is not None
-    return entity_id
+    return mock_rf_entity.entity_id
 
 
 async def test_user_flow_happy_path(
@@ -319,12 +308,10 @@ async def test_reconfigure_no_transmitters_aborts(
     assert result["reason"] == "no_transmitters"
 
 
-@pytest.mark.parametrize("supported_only_868", [True])
 async def test_reconfigure_no_compatible_transmitters_aborts(
     hass: HomeAssistant,
     init_radio_frequency: None,
     init_integration: MockConfigEntry,
-    supported_only_868: bool,
 ) -> None:
     """If no remaining tx supports our frequency, reconfigure aborts."""
     # Drop the default 433 MHz mock and leave only an 868 MHz one.
@@ -339,3 +326,46 @@ async def test_reconfigure_no_compatible_transmitters_aborts(
     result = await init_integration.start_reconfigure_flow(hass)
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "no_compatible_transmitters"
+
+
+async def test_user_flow_generator_skips_used_device_ids(
+    hass: HomeAssistant, mock_rf_entity: MockRadioFrequencyEntity
+) -> None:
+    """``_generate_device_id`` retries until it finds an unused 20-bit ID.
+
+    Covers the ``while ... continue`` branch in config_flow.py — pre-register
+    one entry with a known ID, force the random source to hand back that
+    same ID first and a fresh one second, and verify the second value is
+    what ends up in the new entry.
+    """
+    entity_id = _transmitter_entity_id(hass, mock_rf_entity)
+    registry_id = _transmitter_registry_id(hass, mock_rf_entity)
+
+    colliding_id = 0x11111
+    free_id = 0x22222
+    existing = MockConfigEntry(
+        domain=DOMAIN,
+        title="Existing Cardio54",
+        data={CONF_TRANSMITTER: registry_id, CONF_DEVICE_ID: colliding_id},
+        unique_id=f"{registry_id}_{colliding_id:05X}",
+    )
+    existing.add_to_hass(hass)
+
+    with patch(
+        "custom_components.vacmaster_cardio54.config_flow.random.getrandbits",
+        side_effect=[colliding_id, free_id],
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_TRANSMITTER: entity_id}
+        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"next_step_id": "finish"}
+        )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_DEVICE_ID] == free_id
+    assert result["result"].unique_id == f"{registry_id}_{free_id:05X}"

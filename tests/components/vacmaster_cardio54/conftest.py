@@ -39,11 +39,12 @@ def mock_config_entry(
     Unique ID format mirrors what the config flow produces:
     ``<transmitter_registry_id>_<device_id:05X>``.
     """
-    entity_entry = er.async_get(hass).async_get_entity_id(
-        "radio_frequency", "test", mock_rf_entity.unique_id
-    )
-    assert entity_entry is not None
-    registry_id = er.async_get(hass).async_get(entity_entry).id
+    # MockRadioFrequencyEntity is registered via EntityComponent.async_add_entities,
+    # which gives it an entity_id directly — go via that rather than guessing
+    # the platform name in the entity registry.
+    registry_entry = er.async_get(hass).async_get(mock_rf_entity.entity_id)
+    assert registry_entry is not None
+    registry_id = registry_entry.id
     return MockConfigEntry(
         domain=DOMAIN,
         title="Vacmaster Cardio54",

@@ -7,3 +7,8 @@
 pytest-homeassistant-custom-component>=0.13.300
 pytest-asyncio>=0.24
 syrupy>=4.7
+# HA core does NOT pip-install per-integration requirements transitively, so
+# rf-protocols (declared in radio_frequency's manifest.json) is missing in
+# a plain pytest-homeassistant-custom-component environment. Install it
+# explicitly here.
+rf-protocols>=3.0.0

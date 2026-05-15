@@ -54,6 +54,7 @@ jobs:
             --cov=custom_components.vacmaster_cardio54 \
             --cov-report=term-missing \
             --cov-report=xml \
+            --cov-fail-under=90 \
             --strict-markers \
             -v
       - name: Upload coverage report

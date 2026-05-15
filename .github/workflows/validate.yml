@@ -65,3 +65,9 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          # ``brands`` check needs either the integration listed in
+          # home-assistant/brands or local PNG assets under
+          # custom_components/vacmaster_cardio54/brand/. We'll contribute
+          # brand assets alongside the future core PR; skip the check for
+          # now so the rest of the HACS validation can be enforced.
+          ignore: brands

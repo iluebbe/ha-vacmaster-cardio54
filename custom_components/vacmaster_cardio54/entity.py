@@ -49,12 +49,21 @@ class VacmasterCardio54Entity(Entity):
                 new_state is not None and new_state.state != STATE_UNAVAILABLE
             )
             if transmitter_available != self.available:
-                _LOGGER.info(
-                    "Transmitter %s used by %s is %s",
-                    transmitter_entity_id,
-                    self.entity_id,
-                    "available" if transmitter_available else "unavailable",
-                )
+                # Silver "log-when-unavailable": warning on the downgrade,
+                # info on recovery. Logging gated on the transition so we
+                # only emit once per available/unavailable flip.
+                if transmitter_available:
+                    _LOGGER.info(
+                        "Transmitter %s used by %s is available again",
+                        transmitter_entity_id,
+                        self.entity_id,
+                    )
+                else:
+                    _LOGGER.warning(
+                        "Transmitter %s used by %s is unavailable",
+                        transmitter_entity_id,
+                        self.entity_id,
+                    )
 
                 self._attr_available = transmitter_available
                 self.async_write_ha_state()
