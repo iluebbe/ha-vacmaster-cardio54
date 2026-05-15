@@ -220,9 +220,12 @@ async def test_restore_state_does_not_transmit(
     await hass.async_block_till_done()
 
     state = hass.states.get(ENTITY_ID)
-    # restored percentage maps back to level 2 -> 66%
+    # 66% restored -> percentage_to_ranged_value((1, 3), 66) -> ceil(1.98) ->
+    # level 2 -> ranged_value_to_percentage((1, 3), 2) -> int(66.67) = 66.
+    # The HA helper truncates rather than rounds, so the read-back value is
+    # 66% (not 67%).
     assert state.state == STATE_ON
-    assert state.attributes[ATTR_PERCENTAGE] == 67
+    assert state.attributes[ATTR_PERCENTAGE] == 66
     # Crucially: nothing transmitted during restore.
     assert mock_rf_entity.send_command_calls == []
 

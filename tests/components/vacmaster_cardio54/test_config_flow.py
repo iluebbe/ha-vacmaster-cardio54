@@ -299,9 +299,11 @@ async def test_reconfigure_no_transmitters_aborts(
 ) -> None:
     """Reconfigure aborts cleanly if radio_frequency is gone."""
     # Yank the radio_frequency integration from hass to simulate it being
-    # unloaded between setup and reconfigure.
+    # unloaded between setup and reconfigure. `_ComponentSet` does not
+    # expose `discard`; use `remove` (the entry definitely exists because
+    # `init_integration` set up our integration, which loads radio_frequency).
     hass.data.pop(DATA_COMPONENT, None)
-    hass.config.components.discard("radio_frequency")
+    hass.config.components.remove("radio_frequency")
 
     result = await init_integration.start_reconfigure_flow(hass)
     assert result["type"] is FlowResultType.ABORT
