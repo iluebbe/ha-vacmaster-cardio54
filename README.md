@@ -40,15 +40,28 @@ and HA's view of the state is a best guess restored across restarts via
 
 - Home Assistant ≥ 2026.5 (for the stable `radio_frequency` core integration)
 - A registered RF transmitter that supports **433.92 MHz OOK**, exposed via
-  the `radio_frequency` platform. Tested transmitters:
-  - ESPHome ≥ 2026.5 with the `radio_frequency` / `ir_rf_proxy` component
-    on top of `cc1101` + `remote_transmitter` — a ready-to-flash example
-    config lives at [`esphome/esp32-dev-board.yaml`](esphome/esp32-dev-board.yaml).
-    Copy `esphome/secrets.yaml.example` to `secrets.yaml` next to it and
-    fill in your own keys.
-  - Broadlink RM4 Pro (auto-registered by the Broadlink integration). Works
-    but the RF output is community-reported as weak; range may not reach
-    the fan reliably.
+  the `radio_frequency` platform.
+
+  **Recommended — ESPHome ≥ 2026.5 with CC1101:**
+  `radio_frequency` / `ir_rf_proxy` on top of `cc1101` + `remote_transmitter`.
+  Verified end-to-end with two Cardio54 fans. A ready-to-flash example
+  config lives at [`esphome/esp32-dev-board.yaml`](esphome/esp32-dev-board.yaml).
+  Copy `esphome/secrets.yaml.example` to `secrets.yaml` next to it and
+  fill in your own keys.
+
+  **❌ Broadlink RM4 Pro — did not work in our setup.**
+  The Broadlink integration auto-registers a `radio_frequency` transmitter
+  and accepts the commands; a CC1101 sniffer next to the fan picked up
+  33 consecutive clean `0xABCDE1` decodes from the Broadlink's transmissions,
+  so the protocol on the air is structurally correct. **But the Cardio54
+  receiver does not react** — across multiple days of timing-compensation
+  experiments (sync gap, long-pulse stretching, hardware-repeat vs.
+  software-loop, repeat-count tuning). The most plausible causes are
+  insufficient RF output power and the Broadlink's coarse 32.84 µs tick
+  quantization, neither of which we could narrow down further. We
+  recommend the ESPHome+CC1101 route — same hardware family the OEM
+  remote uses and proven to control the fans reliably. If you only have a
+  Broadlink and want to try anyway, expect to debug at the protocol level.
 
 The Python dependency `rf_protocols` is pulled in transitively by
 `radio_frequency`; no extra requirements declared in `manifest.json`.
