@@ -1,0 +1,38 @@
+[tool.ruff]
+# Match the HA core style so porting the integration upstream needs no
+# additional re-formatting work.
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = [
+    # Line-length handled by the formatter, not the linter.
+    "E501",
+    # X | Y union syntax — keep explicit "X | None" rather than rewriting.
+    "UP007",
+    # Mutable class variables — common HA entity pattern (_attr_*).
+    "RUF012",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "F401",  # imported but unused (fixtures)
+    "F811",  # redefined name (fixture overrides)
+    "F841",  # assigned but unused (test side effects)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components.vacmaster_cardio54"]
+
+[tool.ruff.format]
+quote-style = "double"

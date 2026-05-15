@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import pytest
-
 from homeassistant.components.fan import (
     ATTR_PERCENTAGE,
-    DOMAIN as FAN_DOMAIN,
     SERVICE_SET_PERCENTAGE,
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
+)
+from homeassistant.components.fan import (
+    DOMAIN as FAN_DOMAIN,
 )
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant, State

@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-
 from homeassistant.core import HomeAssistant
 
 if TYPE_CHECKING:
@@ -21,7 +20,7 @@ if TYPE_CHECKING:
 @pytest.fixture(name="init_radio_frequency")
 async def init_radio_frequency_fixture(hass: HomeAssistant) -> None:
     """Set up the Radio Frequency integration for testing."""
-    from .radio_frequency.common import (  # noqa: PLC0415
+    from .radio_frequency.common import (
         init_radio_frequency_fixture_helper,
     )
 
@@ -33,6 +32,6 @@ async def mock_rf_entity_fixture(
     hass: HomeAssistant, init_radio_frequency: None
 ) -> MockRadioFrequencyEntity:
     """Return a mock radio frequency entity registered with the integration."""
-    from .radio_frequency.common import mock_rf_entity_fixture_helper  # noqa: PLC0415
+    from .radio_frequency.common import mock_rf_entity_fixture_helper
 
     return await mock_rf_entity_fixture_helper(hass)

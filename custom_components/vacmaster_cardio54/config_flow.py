@@ -4,7 +4,6 @@ import random
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components.radio_frequency import (
     async_get_transmitters,
     async_send_command,
@@ -15,7 +14,8 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
 )
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er, selector
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_DEVICE_ID,
@@ -46,9 +46,7 @@ class VacmasterCardio54ConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _generate_device_id(self) -> int:
         """Return a random 20-bit device ID not used by another config entry."""
-        used = {
-            entry.data[CONF_DEVICE_ID] for entry in self._async_current_entries()
-        }
+        used = {entry.data[CONF_DEVICE_ID] for entry in self._async_current_entries()}
         while (candidate := random.getrandbits(DEVICE_ID_BITS)) in used:
             continue
         return candidate
@@ -84,9 +82,7 @@ class VacmasterCardio54ConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_TRANSMITTER): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            include_entities=transmitters
-                        ),
+                        selector.EntitySelectorConfig(include_entities=transmitters),
                     ),
                 }
             ),
@@ -190,9 +186,7 @@ class VacmasterCardio54ConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_TRANSMITTER,
                         default=current.entity_id if current else vol.UNDEFINED,
                     ): selector.EntitySelector(
-                        selector.EntitySelectorConfig(
-                            include_entities=transmitters
-                        ),
+                        selector.EntitySelectorConfig(include_entities=transmitters),
                     ),
                 }
             ),

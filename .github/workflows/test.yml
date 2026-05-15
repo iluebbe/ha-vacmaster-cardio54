@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+
+  syntax-check:
+    name: Python syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: py_compile all sources
+        run: |
+          find custom_components/ tests/ -name "*.py" -exec python -m py_compile {} +
+          echo "All Python files syntactically valid."
+
+  lint:
+    name: Ruff (lint + format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install ruff
+        run: pip install --quiet ruff
+      - name: ruff check
+        run: ruff check custom_components/ tests/
+      - name: ruff format --check
+        run: ruff format --check custom_components/ tests/
+
+  pytest:
+    name: pytest (HA via pytest-homeassistant-custom-component)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install test dependencies
+        run: |
+          pip install --quiet --upgrade pip
+          pip install --quiet -r requirements_test.txt
+      - name: Run pytest with coverage
+        run: |
+          PYTHONPATH=. python -m pytest tests/ \
+            --cov=custom_components.vacmaster_cardio54 \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --strict-markers \
+            -v
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14

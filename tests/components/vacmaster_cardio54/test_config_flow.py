@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
-
 from homeassistant.components.radio_frequency import DATA_COMPONENT
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
@@ -76,9 +75,7 @@ async def test_user_flow_happy_path(
         assert result["step_id"] == "pair"
 
         # Submit the pair step -> burst is sent, then we're on the test step
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
 
     # After the pair burst the flow shows the test menu.
     assert result["type"] is FlowResultType.MENU
@@ -202,9 +199,7 @@ async def test_user_flow_test_send_failure(
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {CONF_TRANSMITTER: entity_id}
         )
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], {}
-        )
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
 
     assert result["type"] is FlowResultType.MENU
     assert result["step_id"] == "pair_failed"
@@ -260,9 +255,9 @@ async def test_reconfigure_changes_transmitter(
     assert result["reason"] == "reconfigure_successful"
     assert init_integration.data[CONF_TRANSMITTER] == second_registry_id
     # Device ID is preserved across reconfigure.
-    assert init_integration.data[CONF_DEVICE_ID] == init_integration.data[
-        CONF_DEVICE_ID
-    ]
+    assert (
+        init_integration.data[CONF_DEVICE_ID] == init_integration.data[CONF_DEVICE_ID]
+    )
 
 
 async def test_reconfigure_collision_aborts(

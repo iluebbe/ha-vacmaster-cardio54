@@ -8,8 +8,6 @@ into the core repo this whole file is dropped and the import path becomes
 
 from typing import NamedTuple, override
 
-from rf_protocols import ModulationType, RadioFrequencyCommand
-
 from homeassistant.components.radio_frequency import (
     DATA_COMPONENT,
     RadioFrequencyTransmitterEntity,
@@ -17,6 +15,7 @@ from homeassistant.components.radio_frequency import (
 from homeassistant.components.radio_frequency.const import DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
+from rf_protocols import ModulationType, RadioFrequencyCommand
 
 
 class MockCommand(NamedTuple):

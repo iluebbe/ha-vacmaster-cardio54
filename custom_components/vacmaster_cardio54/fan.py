@@ -78,9 +78,7 @@ class VacmasterCardio54Fan(VacmasterCardio54Entity, FanEntity, RestoreEntity):
             return
         last_pct = last.attributes.get(ATTR_PERCENTAGE)
         if isinstance(last_pct, (int, float)) and last_pct > 0:
-            self._level = math.ceil(
-                percentage_to_ranged_value(_SPEED_RANGE, last_pct)
-            )
+            self._level = math.ceil(percentage_to_ranged_value(_SPEED_RANGE, last_pct))
 
     async def async_turn_on(
         self,

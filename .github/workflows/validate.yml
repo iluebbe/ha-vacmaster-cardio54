@@ -1,0 +1,67 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"   # weekly, Monday 04:00 UTC — catches HACS/hassfest drift
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  json:
+    name: JSON / translations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Validate all JSON files parse
+        run: |
+          python -m json.tool custom_components/vacmaster_cardio54/manifest.json > /dev/null
+          python -m json.tool custom_components/vacmaster_cardio54/strings.json > /dev/null
+          for f in custom_components/vacmaster_cardio54/translations/*.json; do
+            python -m json.tool "$f" > /dev/null || { echo "INVALID: $f"; exit 1; }
+          done
+          python -m json.tool hacs.json > /dev/null
+          echo "All JSON files valid."
+      - name: Translation completeness vs en.json
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys
+          base = pathlib.Path('custom_components/vacmaster_cardio54/translations')
+          en = json.loads((base / 'en.json').read_text(encoding='utf-8'))
+          def count(d):
+              return sum(count(v) if isinstance(v, dict) else 1 for v in d.values())
+          en_count = count(en)
+          ok = True
+          for f in sorted(base.glob('*.json')):
+              n = count(json.loads(f.read_text(encoding='utf-8')))
+              status = 'OK' if n == en_count else 'MISMATCH'
+              print(f'{f.name}: {n} keys ({status})')
+              if n != en_count:
+                  ok = False
+          sys.exit(0 if ok else 1)
+          PY
+
+  hassfest:
+    name: hassfest (HA core manifest validation)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: integration
